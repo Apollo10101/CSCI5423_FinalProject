@@ -88,7 +88,7 @@ SLIDER_PARAMS = [
     ('gamma',   r'γ  Recovery',       0.0,  2.0),
     ('epsilon', r'ε  Mortality',      0.0,  1.0),
     ('phi',     r'φ  Predation rate', 0.0,  1.0),
-    ('mu',      r'μ  Birth rate',     0.0,  0.3),
+    ('mu',      r'μ  Birth rate',     0.0,  1.0),
     ('alpha',   r'α  Pred. effic.',   0.0,  0.2),
     ('delta',   r'δ  Pred. death',    0.0,  0.5),
     ('c',       r'c  Selectivity',    0.5,  8.0),
