@@ -10,7 +10,7 @@ from ModelPresets import PRESETS, PRESET_ICS, DEFAULT_ICS
 
 # ── Initial parameters ────────────────────────────────────────────────────────
 NUM_SUSCEPTIBLE = 999
-TOTAL_AGENTS    = NUM_SUSCEPTIBLE  # S only at start; I and P come from IC sliders
+TOTAL_AGENTS    = NUM_SUSCEPTIBLE
 
 DEFAULT_PARAMS = dict(
     beta=5.0, gamma=0.5, epsilon=0.1,
@@ -18,7 +18,7 @@ DEFAULT_PARAMS = dict(
     delta=0.1, c=1.0
 )
 
-T_MAX    = 100
+T_MAX    = 100     # mutable global updated by slider
 ARENA_R  = 1.0
 N_FRAMES = 600
 
@@ -40,14 +40,14 @@ ACCENT  = "#58a6ff"
 
 # ── Static dot positions ──────────────────────────────────────────────────────
 rng      = np.random.default_rng(42)
-N_DOTS   = NUM_SUSCEPTIBLE + 200   # headroom for births/predators
+N_DOTS   = NUM_SUSCEPTIBLE + 200
 angles_d = rng.uniform(0, 2*np.pi, N_DOTS)
 radii_d  = np.sqrt(rng.uniform(0, 1, N_DOTS)) * ARENA_R * 0.92
 dot_x    = radii_d * np.cos(angles_d)
 dot_y    = radii_d * np.sin(angles_d)
 
 # ── ODE solver ────────────────────────────────────────────────────────────────
-def run_odes(p, i0, p0):
+def run_odes(p, i0, p0, t_max):
     s0 = max(NUM_SUSCEPTIBLE - int(i0), 0)
     def odes(t, y):
         S, I, R, P, D = y
@@ -57,18 +57,18 @@ def run_odes(p, i0, p0):
         dI  = p['beta']*S*I/N - p['gamma']*I - p['epsilon']*I - p['phi']*p['c']*P*I
         dR  = p['gamma']*I - p['phi']*P*R
         dPr = p['alpha']*p['phi']*P*N - p['delta']*P
-        dD  = p['epsilon']*I + p['phi']*P*N
+        dD  = p['epsilon']*I
         return [dS, dI, dR, dPr, dD]
 
     sol = solve_ivp(
-        odes, [0, T_MAX],
+        odes, [0, t_max],
         [s0, i0, 0, p0, 0],
         method='RK45', max_step=0.1, dense_output=True,
-        t_eval=np.linspace(0, T_MAX, N_FRAMES),
+        t_eval=np.linspace(0, t_max, N_FRAMES),
     )
     return sol.t, sol.y
 
-T_vals, sol_y = run_odes(DEFAULT_PARAMS, DEFAULT_ICS['i0'], DEFAULT_ICS['p0'])
+T_vals, sol_y = run_odes(DEFAULT_PARAMS, DEFAULT_ICS['i0'], DEFAULT_ICS['p0'], T_MAX)
 S_vals, I_vals, R_vals, P_vals, D_vals = sol_y
 
 # ── Figure layout ─────────────────────────────────────────────────────────────
@@ -115,13 +115,13 @@ for i, (key, label, vmin, vmax) in enumerate(SLIDER_PARAMS):
                     loc='left', pad=2, fontfamily='monospace')
     slider_objs[key] = sl
 
-# ── IC sliders (full-width, below rate sliders) ───────────────────────────────
+# ── IC sliders ────────────────────────────────────────────────────────────────
 IC_SLIDERS = [
     ('i0', 'I₀  Initial infected',  1, 100),
     ('p0', 'P₀  Initial predators', 0, 100),
 ]
-IC_TOP  = SL_TOP - 4 * SL_GAP - 0.01
-IC_W    = 0.38
+IC_TOP = SL_TOP - 4 * SL_GAP - 0.01
+IC_W   = 0.38
 
 for i, (key, label, vmin, vmax) in enumerate(IC_SLIDERS):
     col  = i % 2
@@ -135,6 +135,17 @@ for i, (key, label, vmin, vmax) in enumerate(IC_SLIDERS):
     ax_sl.set_title(label, color="#c084fc", fontsize=7.5,
                     loc='left', pad=2, fontfamily='monospace')
     slider_objs[key] = sl
+
+# ── T_MAX slider (full width, below IC sliders) ───────────────────────────────
+TMAX_TOP = IC_TOP - SL_GAP
+ax_tmax  = fig.add_axes([0.06, TMAX_TOP, COL_W * 0.75 * 2 + 0.08, SL_H], facecolor=PANEL)
+sl_tmax  = Slider(ax_tmax, '', 10, 1000, valinit=T_MAX,
+                  valstep=10, color="#34d399", track_color=BORDER)
+sl_tmax.label.set_visible(False)
+sl_tmax.valtext.set_color(SUBTEXT)
+sl_tmax.valtext.set_fontsize(7)
+ax_tmax.set_title('T  Simulation duration', color="#34d399", fontsize=7.5,
+                  loc='left', pad=2, fontfamily='monospace')
 
 # ── Preset buttons ────────────────────────────────────────────────────────────
 PRESET_NAMES = list(PRESETS.keys())
@@ -220,13 +231,14 @@ _updating = [False]
 def redraw_traces(_=None):
     if _updating[0]:
         return
-    global T_vals, S_vals, I_vals, R_vals, P_vals, D_vals
+    global T_vals, S_vals, I_vals, R_vals, P_vals, D_vals, T_MAX
 
+    T_MAX = int(sl_tmax.val)   # read current T_MAX from slider
     p  = {k: slider_objs[k].val for k in DEFAULT_PARAMS}
     i0 = int(slider_objs['i0'].val)
     p0 = int(slider_objs['p0'].val)
 
-    T_vals, sol_y2 = run_odes(p, i0, p0)
+    T_vals, sol_y2 = run_odes(p, i0, p0, T_MAX)
     S_vals, I_vals, R_vals, P_vals, D_vals = sol_y2
 
     for k in list(trace_lines.keys()):
@@ -241,12 +253,14 @@ def redraw_traces(_=None):
     ymax = max(S_vals.max(), I_vals.max(), R_vals.max(),
                D_vals.max(), P_vals.max(), 10) * 1.05
     ax_line.set_ylim(0, ymax)
+    ax_line.set_xlim(0, T_MAX)   # update x-axis to match new duration
     state['frame'] = 0
     ani._init_drawn = False
     fig.canvas.draw()
 
 for sl in slider_objs.values():
     sl.on_changed(redraw_traces)
+sl_tmax.on_changed(redraw_traces)
 
 # ── Preset & reset callbacks ──────────────────────────────────────────────────
 def make_preset_cb(name, preset_dict):
@@ -254,7 +268,6 @@ def make_preset_cb(name, preset_dict):
         _updating[0] = True
         for k, v in preset_dict.items():
             slider_objs[k].set_val(v)
-        # Apply IC overrides for this preset if any
         ic_overrides = PRESET_ICS.get(name, {})
         for k, v in ic_overrides.items():
             slider_objs[k].set_val(v)
@@ -271,6 +284,7 @@ def on_reset(event):
         slider_objs[k].set_val(v)
     for k, v in DEFAULT_ICS.items():
         slider_objs[k].set_val(v)
+    sl_tmax.set_val(100)
     _updating[0] = False
     redraw_traces()
 
