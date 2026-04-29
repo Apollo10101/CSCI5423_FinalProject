@@ -16,11 +16,11 @@ PRESET_ICS = {
 }
 
 PRESET_TMAX = {
-    "Moderate Predation":  200,
+    "Moderate Predation":  40,
     "Predator Elimination":200,
     "Endemic Cycling":     1000,
     "Pred-Prey Collapse":  500,
-    "Disease Extinction":  100,
+    "Disease Extinction":  40,
     "Herd Equilibrium":    500,
-    "No Predation":        100,
+    "No Predation":        40,
 }

@@ -61,13 +61,7 @@ for ax, (name, params) in zip(axes_flat, PRESETS.items()):
     peak_idx  = np.argmax(I)
     post_peak = I[peak_idx:]
     zero_mask = post_peak < 1.0
-###
-#    if zero_mask.any() and I[peak_idx] > 10.0:
-#        zero_idx = peak_idx + np.argmax(zero_mask)
-#        end_idx  = min(zero_idx + 5 * steps_per_unit, len(T))
-#    else:
-#        end_idx  = len(T)
-###
+
     end_idx  = len(T)
     T_plot  = T[:end_idx]
     S_plot, I_plot, R_plot, P_plot, D_plot, CI_plot = (
