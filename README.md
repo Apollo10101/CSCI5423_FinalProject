@@ -7,7 +7,7 @@ This is a well-mixed compartmental model which tracks epidemic dynamics. It's bu
 
 [The animated model](Model/SIRAnimButtons.py) is built on the previous, simpler models. The user can input a custom epidemic or select one of the [presets](ModelPresets.py) and watch how the epidemic plays out. Inputs include disease strength, recovery rate, mortality rate, predator selection rate, and more.  
 
-![img.png](Images/SIRModelImage.png)
+[![Watch the video](Images/SIRModelImage.png)](https://www.youtube.com/embed/J3cQmkxAPKc)
 
 ![img.png](Images/EpidemicSummarybyPreset.png)
 
